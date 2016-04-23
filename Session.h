@@ -28,7 +28,7 @@ namespace my_ftp
 	private:
 		void handle_read(const boost::system::error_code& error);		
 		void handle_write(const boost::system::error_code& error);
-		void handle_translate(const boost::system::error_code& error, std::FILE* f);
+		void handle_go_write(const boost::system::error_code& error, std::FILE* f);
 
 		
 		std::string downld_file;
