@@ -17,14 +17,14 @@ namespace my_ftp
 
 	void Server_manager::add_session(std::shared_ptr<Session> session)
 	{
-		pruntime("add_session");
+		pruntime("Server add_session");
 		sessions.insert(session);
 		session->start();
 	}
 
 	void Server_manager::delete_session(std::shared_ptr<Session> session)
 	{
-		pruntime("delete_session");
+		pruntime("Server delete_session");
 		sessions.erase(session);
 		session->stop();
 	}

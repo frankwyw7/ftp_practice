@@ -2,12 +2,11 @@
 #include <boost/asio.hpp>
 #include <memory>
 
-
-
 namespace my_ftp 
 {
 
 	class Server_manager;
+	class Session;
 	class Server
 	{
 
@@ -24,6 +23,8 @@ namespace my_ftp
 		boost::asio::ip::tcp::endpoint endpoint_;
 		boost::asio::ip::tcp::acceptor acceptor_;
 		std::shared_ptr<Server_manager> server_manager_;
+		std::shared_ptr<Session> ptr;
+		boost::asio::signal_set signals_;
 
 	};
 }

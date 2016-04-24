@@ -19,6 +19,7 @@ namespace my_ftp
 
 	private:
 		std::set<std::shared_ptr<Session>> sessions;
+
 		//std::vector<std::string> file_list;
 		//std::vector<std::string, std::string> user_pwd;
 		//boost::filesystem::path path_;

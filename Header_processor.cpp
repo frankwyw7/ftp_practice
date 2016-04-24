@@ -19,7 +19,7 @@ namespace my_ftp
 
 	Request_t Header_processor::parser_header(char* buffer)
 	{
-		pruntime("parser_header");
+		pruntime("Header_processor parser_header");
 		if (buffer == "")
 			return Request_t::valid;
 
@@ -55,7 +55,7 @@ namespace my_ftp
 	int Header_processor::procees_request(char* ibuffer, std::shared_ptr<Session> session, char* obuffer)
 	{
 		//std::string tmp;
-		pruntime("procees_request");
+		pruntime("Header_processor procees_request");
 		switch (Header_processor::parser_header(ibuffer))
 		{
 		case login:
@@ -91,7 +91,7 @@ namespace my_ftp
 
 	int Header_processor::cmppwd(char* ibuffer, char* obuffer) 
 	{
-		pruntime("cmppwd");
+		pruntime("Header_processor cmppwd");
 		std::vector<char> vec_char;
 		for (int i = 5; (ibuffer[i] != '\r'&&ibuffer[i + 1] != '\n') && ibuffer[i] != '\0'; ++i)
 			vec_char.push_back(ibuffer[i]);
@@ -123,7 +123,7 @@ namespace my_ftp
 
 	int Header_processor::query_file(char* ibuffer, char* obuffer) 
 	{
-		pruntime("query_file");
+		pruntime("Header_processor query_file");
 		std::vector<std::string> vec;
 		boost::filesystem::directory_iterator end_iter;
 
@@ -144,7 +144,7 @@ namespace my_ftp
 
 	int Header_processor::download(char* ibuffer, std::shared_ptr<Session> session)
 	{
-		pruntime("download");
+		pruntime("Header_processor download");
 		std::vector<char> vec_char;
 		for (int i = 5; (ibuffer[i] != '\r'&&ibuffer[i + 1] != '\n') && ibuffer[i] != '\0'; ++i)
 			vec_char.push_back(ibuffer[i]);
