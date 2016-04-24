@@ -4,6 +4,7 @@
 #include <fstream>
 #include <iostream>
 #include <boost/bind.hpp>
+#include "help_function.h"
 
 namespace my_ftp
 {
@@ -18,7 +19,7 @@ namespace my_ftp
 
 	Session::~Session() 
 	{
-		
+		pruntime("~Session des");
 	}
 
 	void Session::stop()
@@ -36,55 +37,100 @@ namespace my_ftp
 	void Session::start()
 	{
 		//不能使用std::bind
-		async_read(socket_, buffer(input_buffer_), transfer_all(),
+		pruntime("start");
+		async_read(socket_, buffer(input_buffer_), transfer_at_least(6),
 			boost::bind(&Session::handle_read, shared_from_this(), boost::asio::placeholders::error));
 	}
 
 	//write缓冲区最大字节数以内的数据
 	void Session::handle_read(const boost::system::error_code& error)
 	{		
+		pruntime("handle_read");
 		if (!error)
 		{
 			int result = 0;
 			result = header_processor_->procees_request(input_buffer_, shared_from_this(), output_buffer_);
-			if(result == -1)
+
+			
+			if (result == -1)
+			{
+				this->get_manager()->delete_session(shared_from_this());
 				return;
-			else if (result == 1)
+			}
+			if (result == 1)
 			{
 				//fstream读取一定字节的位移
 				//不能使用std::bind
 				std::FILE* f = std::fopen(downld_file.c_str(), "r");
-				std::fwrite(&output_buffer_[0], sizeof(char), sizeof(output_buffer_) - 1, f);
-				async_write(socket_, buffer(output_buffer_), transfer_all(),
-					boost::bind(&Session::handle_translate, shared_from_this(), 
-					boost::asio::placeholders::error, f));
+
+				int n = std::fread(&output_buffer_[0], sizeof(char), sizeof(output_buffer_) - 1, f);
+				if (n < sizeof(output_buffer_) - 1)
+				{
+					output_buffer_[n] == '\0';
+					async_write(socket_, buffer(output_buffer_), transfer_at_least(1),
+						boost::bind(&Session::handle_write, shared_from_this(), 
+							boost::asio::placeholders::error));
+				}
+				else
+				{
+					async_write(socket_, buffer(output_buffer_), transfer_at_least(1),
+						boost::bind(&Session::handle_go_write, shared_from_this(),
+							boost::asio::placeholders::error, f));
+				}
+
+				
 			}
 			else if (result == 0)
 			{
-				async_write(socket_, buffer(output_buffer_), transfer_all(),
+				async_write(socket_, buffer(output_buffer_), transfer_at_least(1),
 					boost::bind(&Session::handle_write, shared_from_this(), boost::asio::placeholders::error));
 			}
 			
+		}
+		else
+		{
+			perr("handle read");
+			std::cout << error;
 		}
 
 	}
 	void Session::handle_write(const boost::system::error_code& error)
 	{
+		pruntime("handle_write");
 		if (!error)
 		{
-			std::cout << "process success" << std::endl;
+			start();
+		}
+		else
+		{
+			perr("handle write");
 		}
 	}
 
 	//再次wirite一定量的数据，如果尚未传输完成，递归（传递fs目前读取的位移）
-	void Session::handle_translate(const boost::system::error_code& error, std::FILE* f)
+	void Session::handle_go_write(const boost::system::error_code& error, std::FILE* f)
 	{
+		pruntime("handle_go_write");
 		if (!error)
 		{
-			async_write(socket_, buffer(output_buffer_), transfer_all(),
-				boost::bind(&Session::handle_translate, shared_from_this(),
-				boost::asio::placeholders::error, f));
-			std::cout << "process success" << std::endl;
+			int n = std::fread(&output_buffer_[0], sizeof(char), sizeof(output_buffer_) - 1, f);
+			if (n < sizeof(output_buffer_) - 1)
+			{
+				output_buffer_[n] == '\0';
+				async_write(socket_, buffer(output_buffer_), transfer_at_least(1),
+					boost::bind(&Session::handle_write, shared_from_this(), boost::asio::placeholders::error));
+			}
+			else
+			{
+				async_write(socket_, buffer(output_buffer_), transfer_at_least(1),
+					boost::bind(&Session::handle_go_write, shared_from_this(),
+						boost::asio::placeholders::error, f));
+			}
+
+		}
+		else
+		{
+			perr("handle_go_write");
 		}
 	}
 
