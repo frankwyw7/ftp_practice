@@ -1,15 +1,18 @@
 #include "Header_processor.h"
-#include <cstring>
-#include <string>
 #include "Session.h"
 #include "Server_manager.h"
-#include <memory>
 #include "help_function.h"
+#include <cstring>
+#include <string>
+#include <memory>
+#include <sstream>
+#include <cstdlib>
 
 namespace my_ftp
 {
 	static const int maxlen = 6;
 	static const int invalid_num = 4;
+	static const int data_begin_pos = 8;
 
 	char requests[][maxlen] = { "login", "query", "dowld", "quitt"};
 
@@ -20,38 +23,48 @@ namespace my_ftp
 	Request_t Header_processor::parser_header(char* buffer)
 	{
 		pruntime("Header_processor parser_header");
-		if (buffer == "")
-			return Request_t::valid;
 
-		char request[maxlen];
-		for (int i = 0; i < maxlen - 1; i++)
-			request[i] = buffer[i];
-		request[maxlen-1] = '\0';
+		std::istringstream ism(buffer);
+		ism >> request;
+		int tmp = atoi(request.type);
 
-		//bool equal_flag = false;
+		return static_cast<Request_t>(tmp);
 
-		//for (int i = 0; i < invalid_num; i++)
-		//{
-		//	if (strcmp(request, requests[i]))
-		//		equal_flag = true;
-		//}
-
-		//if (!equal_flag)
+		//if (buffer == "")
 		//	return Request_t::valid;
 
-		if (!strcmp(request, requests[0]))
-			return Request_t::login;
-		else if (!strcmp(request, requests[1]))
-			return Request_t::query;
-		else if (!strcmp(request, requests[2]))
-			return Request_t::dowld;
-		else if (!strcmp(request, requests[3]))
-			return Request_t::quitt;
-		else
-			return Request_t::valid;
+		//char request[maxlen];
+		//for (int i = 0; i < maxlen - 1; i++)
+		//	request[i] = buffer[i];
+		//request[maxlen-1] = '\0';
+
+		////bool equal_flag = false;
+
+		////for (int i = 0; i < invalid_num; i++)
+		////{
+		////	if (strcmp(request, requests[i]))
+		////		equal_flag = true;
+		////}
+
+		////if (!equal_flag)
+		////	return Request_t::valid;
+
+		//if (!strcmp(request, requests[0]))
+		//	return Request_t::login;
+		//else if (!strcmp(request, requests[1]))
+		//	return Request_t::query;
+		//else if (!strcmp(request, requests[2]))
+		//	return Request_t::dowld;
+		//else if (!strcmp(request, requests[3]))
+		//	return Request_t::quitt;
+		//else
+		//	return Request_t::valid;
 
 	}
 
+	//返回1  下载文件
+	//返回0  直接发送缓冲区
+	//返回-1 退出
 	int Header_processor::procees_request(char* ibuffer, std::shared_ptr<Session> session, char* obuffer)
 	{
 		//std::string tmp;
@@ -68,7 +81,11 @@ namespace my_ftp
 			break;
 
 		case dowld:
-			download(ibuffer, session);
+			if (download(ibuffer, session) == 1)
+			{
+				char tmp[] = "file is not exist";
+				strcpy(obuffer, tmp);
+			}
 			return 1;
 
 		case quitt:
@@ -93,8 +110,9 @@ namespace my_ftp
 	{
 		pruntime("Header_processor cmppwd");
 		std::vector<char> vec_char;
-		for (int i = 5; (ibuffer[i] != '\r'&&ibuffer[i + 1] != '\n') && ibuffer[i] != '\0'; ++i)
-			vec_char.push_back(ibuffer[i]);
+		int len = atoi(request.length);
+		for (int i = 0; i < len; ++i)
+			vec_char.push_back(request.data[i]);
 
 		std::string str(vec_char.begin(), vec_char.end());
 		std::string str_pwd;
@@ -121,6 +139,7 @@ namespace my_ftp
 		return 0;
 	};
 
+	//查询FTP文件夹当前包含文件
 	int Header_processor::query_file(char* ibuffer, char* obuffer) 
 	{
 		pruntime("Header_processor query_file");
@@ -146,12 +165,15 @@ namespace my_ftp
 	{
 		pruntime("Header_processor download");
 		std::vector<char> vec_char;
-		for (int i = 5; (ibuffer[i] != '\r'&&ibuffer[i + 1] != '\n') && ibuffer[i] != '\0'; ++i)
-			vec_char.push_back(ibuffer[i]);
+		int len = atoi(request.length);
+		for (int i = 0; i < len; ++i)
+			vec_char.push_back(request.data[i]);
 		boost::filesystem::path path(path_);
 		std::string tmp(vec_char.begin(), vec_char.end());
 		path.append(tmp);
-		session->set_downld_flie(path.string());
+		if (!session->set_downld_flie(path.string()))
+			return 1;
 		return 0;
 	};
+
 }
