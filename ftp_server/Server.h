@@ -11,7 +11,7 @@ namespace my_ftp
 	{
 
 	public:
-		Server(boost::asio::ip::tcp::endpoint endpoint);
+		Server(boost::asio::ip::tcp::endpoint endpoint, int thread_pool_size_);
 		~Server();
 		void run();
 		void start_accept();
@@ -26,6 +26,7 @@ namespace my_ftp
 		std::shared_ptr<Server_manager> server_manager_;
 		std::shared_ptr<Session> ptr;
 		boost::asio::signal_set signals_;
+		int thread_pool_size;
 
 	};
 }

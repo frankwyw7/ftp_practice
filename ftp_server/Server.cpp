@@ -3,15 +3,18 @@
 #include "Server_manager.h"
 #include "../common/help_function.h"
 #include <boost/bind.hpp>
+#include <vector>
+#include <thread>
 
 namespace my_ftp
 {
-	Server::Server(ip::tcp::endpoint endpoint) 
+	Server::Server(ip::tcp::endpoint endpoint, int thread_pool_size_)
 		:io_service_(),
 		 endpoint_(endpoint),
 		 acceptor_(io_service_, endpoint_),
 		 signals_(io_service_),
-		 server_manager_(std::make_shared<Server_manager>())
+		 server_manager_(std::make_shared<Server_manager>()),
+		 thread_pool_size(thread_pool_size_)
 	{
 		signals_.add(SIGINT);
 		signals_.add(SIGTERM);
@@ -38,7 +41,18 @@ namespace my_ftp
 
 	void Server::run()
 	{
-		io_service_.run();
+		std::vector<std::shared_ptr<std::thread>> threads;
+		for (int i = 0; i < thread_pool_size; ++i)
+		{
+			auto thread 
+				= std::make_shared <std::thread>(boost::bind(&boost::asio::io_service::run, &io_service_));
+			threads.push_back(thread);
+		}
+		
+		for (int i = 0; i < threads.size(); ++i)
+		{
+			threads[i]->join();
+		}
 	}
 
 	void Server::handle_accpet(const boost::system::error_code& error)

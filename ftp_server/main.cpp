@@ -11,7 +11,7 @@ int main()
 	{
 		boost::asio::ip::tcp::endpoint ed(boost::asio::ip::tcp::v4(), port);
 
-		my_ftp::Server server(ed);
+		my_ftp::Server server(ed, 4);
 
 		server.run();
 	}
