@@ -1,7 +1,7 @@
 #include "Header_processor.h"
 #include "Session.h"
 #include "Server_manager.h"
-#include "help_function.h"
+#include "../common/help_function.h"
 #include <cstring>
 #include <string>
 #include <memory>
@@ -28,37 +28,6 @@ namespace my_ftp
 		int tmp = atoi(request.type);
 
 		return static_cast<Request_t>(tmp);
-
-		//if (buffer == "")
-		//	return Request_t::valid;
-
-		//char request[maxlen];
-		//for (int i = 0; i < maxlen - 1; i++)
-		//	request[i] = buffer[i];
-		//request[maxlen-1] = '\0';
-
-		////bool equal_flag = false;
-
-		////for (int i = 0; i < invalid_num; i++)
-		////{
-		////	if (strcmp(request, requests[i]))
-		////		equal_flag = true;
-		////}
-
-		////if (!equal_flag)
-		////	return Request_t::valid;
-
-		//if (!strcmp(request, requests[0]))
-		//	return Request_t::login;
-		//else if (!strcmp(request, requests[1]))
-		//	return Request_t::query;
-		//else if (!strcmp(request, requests[2]))
-		//	return Request_t::dowld;
-		//else if (!strcmp(request, requests[3]))
-		//	return Request_t::quitt;
-		//else
-		//	return Request_t::valid;
-
 	}
 
 	//返回1  下载文件
@@ -71,7 +40,6 @@ namespace my_ftp
 		switch (Header_processor::parser_header(ibuffer))
 		{
 		case login:
-			//比较后面的用户名与密码
 			cmppwd(ibuffer, obuffer);
 			break;
 
@@ -89,8 +57,6 @@ namespace my_ftp
 			return 1;
 
 		case quitt:
-			//产生了调用环路，引用计数为零时，先析构还是执行完本函数后析构
-			//session->get_manager()->delete_session(session);
 			return -1;
 
 		case valid:
@@ -161,7 +127,7 @@ namespace my_ftp
 		obuffer[obuf_k++] = '\0';
 		return 0;
 	};
-
+	//fstream打开文件，无法打开返回1
 	int Header_processor::download(char* ibuffer, std::shared_ptr<Session> session)
 	{
 		pruntime("Header_processor download");

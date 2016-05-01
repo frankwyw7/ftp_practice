@@ -1,4 +1,4 @@
-#include "help_function.h"
+#include "../common/help_function.h"
 
 namespace my_ftp
 {
@@ -18,6 +18,13 @@ namespace my_ftp
 
 	}
 #endif
+
+	void add_buffer_over(char* buf, int n)
+	{
+		buf[n] = '\r';
+		buf[n + 1] = '\n';
+		buf[n + 2] = '\0';
+	}
 
 	void data_int_to_char(int len, char* tmp)
 	{

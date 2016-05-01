@@ -1,8 +1,7 @@
 #include "Session.h"
 #include "Header_processor.h"
 #include "Server_manager.h"
-#include "help_function.h"
-
+#include "../common/help_function.h"
 #include <fstream>
 #include <iostream>
 #include <boost/bind.hpp>
@@ -23,7 +22,10 @@ namespace my_ftp
 		deadline_timer_(io_service_),
 		go_on(true),
 		mutex_()
-	{ }
+	{ 
+		
+		
+	}
 
 	Session::~Session() 
 	{
@@ -51,8 +53,9 @@ namespace my_ftp
 	{
 		try
 		{
-			pruntime("Session start");
 			deadline_timer_.expires_from_now(boost::posix_time::seconds(30));
+			pruntime("Session start");
+			
 			async_read(socket_, buffer(input_buffer_), transfer_at_least(6),
 				boost::bind(&Session::handle_read, shared_from_this(), boost::asio::placeholders::error));
 			deadline_timer_.async_wait(boost::bind(&Session::check_deadline, shared_from_this()));
@@ -60,22 +63,19 @@ namespace my_ftp
 		catch (std::exception& e)
 		{
 			std::cerr << "exception: " << e.what() << "\n";
-		}
-		//不能使用std::bind
-		
+		}	
 
 	}
 
-	//write缓冲区最大字节数以内的数据
 	void Session::handle_read(const boost::system::error_code& error)
 	{		
 		
 		pruntime("Session handle_read");
 		try
 		{
+			deadline_timer_.expires_from_now(boost::posix_time::seconds(30));
 			if (!error && go_on)
 			{
-				deadline_timer_.expires_from_now(boost::posix_time::seconds(30));
 				int result = 0;
 				result = header_processor_->procees_request(input_buffer_, shared_from_this(), output_buffer_);
 
@@ -88,12 +88,6 @@ namespace my_ftp
 				//下载文件
 				if (result == 1)
 				{
-					//fstream读取一定字节的位移
-					//std::FILE* f = std::fopen(downld_file.c_str(), "r");
-
-					//int n = std::fread(&output_buffer_[0], sizeof(char), sizeof(output_buffer_) - 1, f);
-
-					
 					fs.read(output_buffer_ + HEADER_LEN, DATA_LEN);
 					int n = fs.gcount() ;
 					char n_char[5];
@@ -103,25 +97,23 @@ namespace my_ftp
 						output_buffer_[i + 4] = n_char[i];
 					if (n < DATA_LEN)
 					{
-						add_buffer_over(n + HEADER_LEN);
+						add_buffer_over(output_buffer_, n + HEADER_LEN);
 						async_write(socket_, buffer(output_buffer_, HEADER_LEN + n + OVER_LEN), transfer_at_least(1),
 							boost::bind(&Session::handle_file_write, shared_from_this(),
 								boost::asio::placeholders::error));
 					}
 					else
 					{
-						add_buffer_over(n + HEADER_LEN);
+						add_buffer_over(output_buffer_, n + HEADER_LEN);
 						async_write(socket_, buffer(output_buffer_, HEADER_LEN + DATA_LEN + OVER_LEN), transfer_at_least(1),
 							boost::bind(&Session::handle_go_write, shared_from_this(),
 								boost::asio::placeholders::error));
 					}
-
-
 				}
 				//直接发送输出buffer
 				else if (result == 0)
 				{
-					add_buffer_over(strlen(output_buffer_));
+					add_buffer_over(output_buffer_, strlen(output_buffer_));
 					async_write(socket_, buffer(output_buffer_, strlen(output_buffer_)+ OVER_LEN), transfer_at_least(1),
 						boost::bind(&Session::handle_write, shared_from_this(), boost::asio::placeholders::error));
 				}
@@ -136,8 +128,6 @@ namespace my_ftp
 		{
 			std::cerr << "exception: " << e.what() << "\n";
 		}
-		
-
 	}
 
 	void Session::handle_write(const boost::system::error_code& error)
@@ -145,6 +135,7 @@ namespace my_ftp
 		pruntime("Session handle_write");
 		try
 		{
+			deadline_timer_.expires_from_now(boost::posix_time::seconds(30));
 			if (fs)
 			{
 				fs.close();
@@ -176,7 +167,8 @@ namespace my_ftp
 		}
 		try
 		{
-			if (fs)
+			deadline_timer_.expires_from_now(boost::posix_time::seconds(30));
+			if (fs.is_open())
 			{
 				fs.close();
 				fs.clear();
@@ -210,8 +202,6 @@ namespace my_ftp
 		{
 			if (!error && go_on)
 			{
-				
-
 				deadline_timer_.expires_from_now(boost::posix_time::seconds(30));
 
 				strcpy(output_buffer_, "0006");
@@ -221,15 +211,15 @@ namespace my_ftp
 
 				if (n < DATA_LEN)
 				{
-					add_buffer_over(n);
+					add_buffer_over(output_buffer_, n + HEADER_LEN);
 					async_write(socket_, buffer(output_buffer_, HEADER_LEN + n + OVER_LEN), transfer_at_least(1),
 						boost::bind(&Session::handle_write, shared_from_this(),
 							boost::asio::placeholders::error));
 				}
 				else
 				{
-					add_buffer_over(n);
-					async_write(socket_, buffer(output_buffer_, HEADER_LEN + DATA_LEN + OVER_LEN), transfer_at_least(1),
+					add_buffer_over(output_buffer_, n + HEADER_LEN);
+					async_write(socket_, buffer(output_buffer_, HEADER_LEN + n + OVER_LEN), transfer_at_least(1),
 						boost::bind(&Session::handle_go_write, shared_from_this(),
 							boost::asio::placeholders::error));
 				}
@@ -243,11 +233,8 @@ namespace my_ftp
 		catch (std::exception& e)
 		{
 			std::cerr << "exception: " << e.what() << "\n";
-		}
-		
-	}
-
-	
+		}		
+	}	
 
 	std::shared_ptr<Server_manager> Session::get_manager()
 	{
@@ -257,11 +244,14 @@ namespace my_ftp
 	bool Session::set_downld_flie(std::string file)
 	{
 		fs.open(file, std::ios_base::binary | std::ios_base::in);
-		if (!fs)
-			return false;
-		return true;
+		if (fs.is_open())
+		{
+			fs.clear();
+			fs.seekg(std::ios::beg);
+			return true;
+		}
+		return false;
 	}
-
 
 	void Session::check_deadline()
 	{		
@@ -276,13 +266,6 @@ namespace my_ftp
 			return;
 		}
 		deadline_timer_.async_wait(boost::bind(&Session::check_deadline, shared_from_this()));
-	}
-
-	void Session::add_buffer_over(int n)
-	{
-		output_buffer_[n] = '\r';
-		output_buffer_[n + 1] = '\n';
-		output_buffer_[n + 2] = '\0';
 	}
 
 	bool Session::receive_trnbk()
@@ -300,7 +283,6 @@ namespace my_ftp
 				perr("valid transfile back");
 				return false;
 			}
-			deadline_timer_.async_wait(boost::bind(&Session::check_deadline, shared_from_this()));
 			return true;
 		}
 		catch (std::exception& e)

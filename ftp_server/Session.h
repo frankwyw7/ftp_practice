@@ -34,8 +34,6 @@ namespace my_ftp
 		bool receive_trnbk();
 		void check_deadline();
 
-		void add_buffer_over(int n);
-
 		bool go_on;
 
 		std::mutex mutex_;
