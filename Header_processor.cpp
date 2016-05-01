@@ -24,8 +24,7 @@ namespace my_ftp
 	{
 		pruntime("Header_processor parser_header");
 
-		std::istringstream ism(buffer);
-		ism >> request;
+		request.decode(buffer);
 		int tmp = atoi(request.type);
 
 		return static_cast<Request_t>(tmp);
@@ -158,6 +157,7 @@ namespace my_ftp
 			}
 			obuffer[obuf_k++] = '\n';
 		}
+		obuffer[obuf_k++] = '\0';
 		return 0;
 	};
 

@@ -24,18 +24,20 @@ namespace my_ftp
 		void start();
 		void stop();
 
-		void set_downld_flie(std::string file);
+		bool set_downld_flie(std::string file);
 		std::shared_ptr<Server_manager> get_manager();
 	private:
 		void handle_read(const boost::system::error_code& error);		
 		void handle_write(const boost::system::error_code& error);
-		void handle_go_write(const boost::system::error_code& error, std::FILE* f);
+		void handle_go_write(const boost::system::error_code& error);
 		void check_deadline();
 
+		void add_buffer_over(int n);
+
 		bool go_on;
-		std::string downld_file;
 
 		std::mutex mutex_;
+		std::fstream fs;
 
 		char input_buffer_[4096];
 		char output_buffer_[4096];

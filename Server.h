@@ -14,10 +14,11 @@ namespace my_ftp
 		Server(boost::asio::ip::tcp::endpoint endpoint);
 		~Server();
 		void run();
+		void start_accept();
 	private:
 		void handle_accpet(const boost::system::error_code& error);
 		void handle_stop(const boost::system::error_code& error);
-		void start_accept();
+		
 
 		boost::asio::io_service io_service_;
 		boost::asio::ip::tcp::endpoint endpoint_;
